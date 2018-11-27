@@ -57,9 +57,33 @@ int main()
 	int yIndicesMove[MAX_PIECES] = { 0 };
 	int xIndicesJump[MAX_PIECES] = { 0 };
 	int yIndicesJump[MAX_PIECES] = { 0 };
+
 	// Integer variables
-	int numRowsInBoard = 0;
+	int numRowsInBoard = 0; // Holds the number of rows and columns that user inputs.
 	int player = 1; // Default is white player first
+	int jumpPossible = 0; // Holds the return value of countJump function. It is the count of possible jumps in the current board.
+	int movePossible = 0; // Holds the return value of countMove1Square. It is the count of possible moves in the current board.
+	int moveFrom = 0; // User inputs the value he/she wishes to move.
+	int moveTo = 0; // User inputs the value he/she wishes to move to.
+	int xMoveFrom = 0; // x coordinate for the square user choses to move.
+	int yMoveFrom = 0; // y coordinate for the square user choses to move.
+	int xMoveTo = 0; // x coordinate for the square user wants to move to.
+	int yMoveTo = 0; // y coordinate for the square user wants to move to.
+	int counter = 0; // Counts how many values are in the jump indices.
+	int canJump = 0; // Variable for squares that can jump
+	int xCanJump = 0; // x coordinate for the square that can jump.
+	int yCanJump = 0; // y coordinate for the square that can jump.
+	int xDiagCheck = 0; // Difference of x value of xMoveFrom and xMoveTo.
+	int yDiagCheck = 0; // Difference of y values of yMoveFrom and yMoveTo.
+
+	// Character variable to end the game.
+	char endGame = '\0';
+
+	// Booleans for flags 
+	bool validEntry = false; // Flags if user entry is valid.
+	bool diagCheck = false; // Flags if user wants to move to a diagonal square.
+	bool jumped = false; // Flags if the checker jumped
+	bool moved = false; // Boolean to save the return value of MakeMove function.
 
 	// Prompting and reading the the size of the board from the user. 
 	for (int counter = 1; counter <= 3; counter++)
@@ -94,15 +118,206 @@ int main()
 
 		if (counter == 3) // If user reaches maximum of three tries, program terminates
 		{
-			cerr << "ERROR: Too many errors entering the size of the board.";
+			cerr << "ERROR: Too many errors entering the size of the board.\n";
 			exit(1);
 		}
 	}
 
-	InitializeBoard(myCMCheckersBoard, numRowsInBoard); // Initializing the board
-	DisplayBoard(myCMCheckersBoard, numRowsInBoard);
+	InitializeBoard(myCMCheckersBoard, numRowsInBoard); // Initializing the board.
+	DisplayBoard(myCMCheckersBoard, numRowsInBoard); // Displaying the board.
 
-	//cout << CountJumps(myCMCheckersBoard, numRowsInBoard, player, xIndicesJump, yIndicesJump)<<endl;
+	while (CheckWin(myCMCheckersBoard, numRowsInBoard) == false)
+	{
+		jumpPossible = CountJumps(myCMCheckersBoard, numRowsInBoard, player, xIndicesJump, yIndicesJump);
+		movePossible = CountMove1Squares(myCMCheckersBoard, numRowsInBoard, player, xIndicesMove, yIndicesMove);
+
+		// There is no possible move, then game is over
+		if (jumpPossible == 0 && movePossible == 0)
+		{
+			if (player == WHITEPLAYER)
+			{
+				cout << "White is unable to move.\n" << "GAME OVER, Red has won.\n" << "Enter any character to close the game.\n";
+				cin >> endGame;
+				exit(2);
+			}
+			else if (player == REDPLAYER)
+			{
+				cout << "Red is unable to move.\n" << "GAME OVER, White has won.\n";
+				cin >> endGame;
+				exit(3);
+			}
+		}
+		// There is at least one possible move, then ask user to input the square to move.
+		else if (movePossible >= 1 || jumpPossible >= 1)
+		{
+			if (player == WHITEPLAYER)
+			{
+				cout << "White takes a turn.\n";
+			}
+			if (player == REDPLAYER)
+			{
+				cout << "Red takes a turn.\n";
+			}
+
+		// User inputs the square he/she wants to move.
+		while (!validEntry)
+		{
+			cout << "Enter the square number of the checker you want to move\n";
+			cin >> moveFrom;
+
+			// Check if the input is integer. If not, print error message
+			if (cin.fail())
+			{
+				cin.clear();
+				cin.ignore();
+				cerr << "ERROR: You did not enter an integer" << endl << "Try again" << endl;
+				continue;
+			}
+			// Check if the user input is located on the board.
+			if (moveFrom >= (numRowsInBoard*numRowsInBoard) || moveFrom < 0)
+			{
+				cerr << "ERROR: That square is not on the board." << endl << "Try again" << endl;
+				continue;
+			}
+
+			// To evaluate the square user chose, get x and y coordinate of the square.
+			xMoveFrom = moveFrom % numRowsInBoard;
+			yMoveFrom = moveFrom / numRowsInBoard;
+
+			// If the chosen square is occupied by an opponent's checker, error message appears
+			if (player == WHITEPLAYER)
+			{
+				if (myCMCheckersBoard[yMoveFrom][xMoveFrom] == REDSOLDIER || myCMCheckersBoard[yMoveFrom][xMoveFrom] == REDMULE || myCMCheckersBoard[yMoveFrom][xMoveFrom] == REDKING)
+				{
+					cerr << "ERROR: That square contains an opponent's checker." << endl << "Try again" << endl;
+					continue;
+				}
+			}
+			if (player == REDPLAYER)
+			{
+				if (myCMCheckersBoard[yMoveFrom][xMoveFrom] == WHITESOLDIER || myCMCheckersBoard[yMoveFrom][xMoveFrom] == WHITEMULE || myCMCheckersBoard[yMoveFrom][xMoveFrom] == WHITEKING)
+				{
+					cerr << "ERROR: That square contains an opponent's checker." << endl << "Try again" << endl;
+					continue;
+				}
+			}
+
+			// Checks if the square contains no checker.
+			if (myCMCheckersBoard[yMoveFrom][xMoveFrom] == EMPTY)
+			{
+				cerr << "ERROR: That square is empty." << endl << "Try again" << endl;
+				continue;
+			}
+
+			// There is a checker that can jump other than the chosen square that can only move one square, then
+			// the checker that can jump has to be chosen. First, the xIndicesJump array is examined to determine
+			// whether there are any squares that can jump.
+			for (int i = 0; i < MAX_PIECES; i++)
+			{
+				if (xIndicesJump[i] != -1)
+					counter++;
+			}
+
+			// If the chosen square is not in the list of squares that can jump, and the counter for jump available
+			// square is bigger or equal to 1, then there is another square that can jump.
+			if (!CheckList(yIndicesJump, xIndicesJump, xMoveFrom, yMoveFrom) && counter >= 1)
+			{
+				cerr << "ERROR: You can jump with another checker, you may not move your chosen checker." << endl
+					<< "You can jump using checkers on the following squares:";
+									// Find what other squares can jump and output them
+				for (int i = 0; i < counter; i++)
+				{
+					xCanJump = xIndicesJump[i];
+					yCanJump = yIndicesJump[i];
+
+					canJump = yCanJump * numRowsInBoard + xCanJump;
+					cerr << " " << canJump << endl;
+				}
+				cerr << "Try again" << endl;
+				continue;
+			}
+
+			//If the chosen checker cannot jump or move, then print the error message
+			if (!CheckList(yIndicesJump, xIndicesJump, xMoveFrom, yMoveFrom) && !CheckList(yIndicesMove, xIndicesMove, xMoveFrom, yMoveFrom))
+			{
+				cerr << "ERROR: There is no legal move for this checker" << endl << "Try again" << endl;
+				continue;
+			}
+			validEntry = true;
+		}
+		validEntry = false; // Used to repeat the same procedure with the destination square.
+
+		// User inputs square number that he/she wants to move to.
+		while (!validEntry)
+		{
+			cout << "Enter the square number of the square you want to move your checker to\n";
+			cin >> moveTo;
+
+			// Check if the input is integer. If not, print error message
+			if (cin.fail())
+			{
+				cin.clear();
+				cin.ignore();
+				cerr << "ERROR: You did not enter an integer" << endl << "Try again" << endl;
+				continue;
+			}
+			// Check if the user input is located on the board.
+			if (moveTo >= (numRowsInBoard*numRowsInBoard) || moveTo < 0)
+			{
+				cerr << "ERROR: It is not possible to move to a square that is not on the board." << endl << "Try again" << endl;
+				continue;
+			}
+
+			// To evaluate the square user choses, get x and y coordinate of the square.
+			xMoveTo = moveTo % numRowsInBoard;
+			yMoveTo = moveTo / numRowsInBoard;
+
+			// Check if the square is already occupied.
+			if (myCMCheckersBoard[yMoveTo][xMoveTo] != EMPTY)
+			{
+				cerr << "ERROR: It is not possible to move to a square that is already occupied." << endl << "Try again" << endl;
+				continue;
+			}
+
+			// Decide if the user wants to move the square diagonally.
+			xDiagCheck = abs(xMoveFrom - xMoveTo);
+			yDiagCheck = abs(yMoveFrom - yMoveTo);
+
+			if ((xDiagCheck == 1 && yDiagCheck == 1) || (xDiagCheck == (numRowsInBoard - 1) && yDiagCheck == 1)
+			{
+				diagCheck = true;
+			}
+			else
+			{
+				diagCheck = false;
+			}
+
+			// Checks if the square can jump when it is requested to move diagonally.
+			if (CheckList(yIndicesJump, xIndicesJump, xMoveFrom, yMoveFrom) && diagCheck)
+			{
+				cerr << "ERROR: You can jump with this checker, you must jump not move 1 space." << endl << "Try again" << endl;
+					continue;
+			}
+			validEntry = true;
+		}
+		
+		moved = MakeMove(myCMCheckersBoard, numRowsInBoard, player, moveFrom, moveTo, jumped)
+		DisplayBoard(myCMCheckersBoard, numRowsInBoard);
+
+		if (moved == false)
+		{
+			cerr << "ERROR: Moving to that square is not legal, Try again." << endl;
+		}
+		else if()
+		{
+
+		}
+
+
+	}
+	
+
+
 
 	return 0;
 }
@@ -177,6 +392,7 @@ void DisplayBoard(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRo
 		}
 		cout << endl;
 	}
+	cout << endl << endl;
 }
 
 // Function to
@@ -197,8 +413,6 @@ int CountJumps(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsI
 	// if it can jump. If IsJump is true, the counter recording the number of the player's 
 	// checkers that can jump is ++. The value of xIndex is placed in the next unused location 
 	// of xLocArray and the value of yIndex is placed in the next unused element of array yLocArray.
-
-
 
 	// If it is white player's turn
 	if (player == WHITEPLAYER)
@@ -1085,6 +1299,8 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 	int yLocBtw = 0; // y index for the location of the checker between two diagonal move.
 	int move = 0; // Holds the value whether the move is 1 square or 2 squares diagonal. 0 is invalid.
 	int betweenNum = 0; // The square between two diagonal move is stored in here.
+	int movedTemp = 0; // Holds the temporary value of the moved checker to compare if a mule is changed to a king.
+	char endGame = '0'; // Character to end the game when a mule king is created.
 
 	// Constants to determine the movement of the squares.
 	const int ONESQUARE = 1;
@@ -1115,7 +1331,7 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 	}
 	else
 		move = INVALID;
-		
+
 	// User wants to move more than two squares diagonally.
 	if (move == INVALID)
 	{
@@ -1151,14 +1367,15 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 			xLocBtw = betweenNum % numRowsInBoard;
 			yLocBtw = betweenNum / numRowsInBoard;
 		}
-		
+
+		// Check the checker located between the two diagonal move
 		if (!(CMCheckersBoard[yLocBtw][xLocBtw] == REDSOLDIER || CMCheckersBoard[yLocBtw][xLocBtw] == REDMULE || CMCheckersBoard[yLocBtw][xLocBtw] == REDKING))
 		{
 			cerr << "ERROR: Illegal move." << endl;
 			return false;
 		}
 	}
-	
+
 	// Check if a white soldier or a white mule is moving in the wrong direction. yLocTo is smaller than yLocFrom.
 	else if (CMCheckersBoard[yLocFrom][xLocFrom] == WHITESOLDIER || CMCheckersBoard[yLocFrom][xLocFrom] == WHITEMULE)
 	{
@@ -1178,4 +1395,158 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 		}
 	}
 
+	// Making the move. Checking the jump first, then move.
+	// For jump, move the checker to the location and destroy the value between the jump.
+	// Then empties the value in original square.
+	if (move == TWOSQUARES)
+	{
+		CMCheckersBoard[yLocTo][xLocTo] = CMCheckersBoard[yLocFrom][xLocFrom];
+		CMCheckersBoard[yLocBtw][xLocBtw] = EMPTY;
+		CMCheckersBoard[yLocFrom][xLocFrom] = EMPTY;
+		jumped = true;
+
+		// Check if the jumped checker has reached the end of the board and if so, check if it was a mule. 
+		// If it was a mule, print error message and exit the program. Otherwise, return true.
+		if (player == WHITEPLAYER)
+		{
+			if (yLocTo == numRowsInBoard - 1)
+			{
+				movedTemp = CMCheckersBoard[yLocTo][xLocTo];
+				CMCheckersBoard[yLocTo][xLocTo] = WHITEKING;
+				if (movedTemp == WHITEMULE)
+				{
+					cerr << "White has created a Mule King, Red wins the game\n";
+					cout << "Enter any character to terminate the game then press the enter key\n";
+					cin >> endGame;
+					exit(2);
+				}
+			}
+		}
+		else if (player == REDPLAYER)
+		{
+			if (yLocTo == 0)
+			{
+				movedTemp = CMCheckersBoard[yLocTo][xLocTo];
+				CMCheckersBoard[yLocTo][xLocTo] = REDKING;
+				if (movedTemp == REDMULE)
+				{
+					cerr << "Red has created a Mule King, White wins the game\n";
+					cout << "Enter any character to terminate the game then press the enter key\n";
+					cin >> endGame;
+					exit(3);
+				}
+			}
+		}
+		return true;
+	}
+	// For move, change the checker location and empty the value in the original square.
+	// Then check if the mule checker has reached the end of the board. If so, print error message and exit the program.
+	// Otherwise, return true.
+	else if (move == ONESQUARE)
+	{
+		CMCheckersBoard[yLocTo][xLocTo] = CMCheckersBoard[yLocFrom][xLocFrom];
+		CMCheckersBoard[yLocFrom][xLocFrom] = EMPTY;
+
+		if (player == WHITEPLAYER)
+		{
+			if (yLocTo == numRowsInBoard - 1)
+			{
+				movedTemp = CMCheckersBoard[yLocTo][xLocTo];
+				CMCheckersBoard[yLocTo][xLocTo] = WHITEKING;
+				if (movedTemp == WHITEMULE)
+				{
+					cerr << "White has created a Mule King, Red wins the game\n";
+					cout << "Enter any character to terminate the game then press the enter key\n";
+					cin >> endGame;
+					exit(4);
+				}
+			}
+		}
+		else if (player == REDPLAYER)
+		{
+			if (yLocTo == 0)
+			{
+				movedTemp = CMCheckersBoard[yLocTo][xLocTo];
+				CMCheckersBoard[yLocTo][xLocTo] = REDKING;
+				if (movedTemp == REDMULE)
+				{
+					cerr << "Red has created a Mule King, White wins the game\n";
+					cout << "Enter any character to terminate the game then press the enter key\n";
+					cin >> endGame;
+					exit(5);
+				}
+			}
+		}
+		return true;
+	}
+}
+
+bool CheckWin(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
+{
+	// Counter variables for mules and soldiers/kings for each color.
+	int redMuleCount = 0;
+	int whiteMuleCount = 0;
+	int redSKCount = 0;
+	int whiteSKCount = 0;
+
+	// Red player no mules
+	for (int i = 0; i < numRowsInBoard; i++)
+	{
+		for (int j = 0; j < numRowsInBoard; j++)
+		{
+			if (CMCheckersBoard[i][j] == REDMULE)
+				redMuleCount++;
+		}
+	}
+	if (redMuleCount == 0)
+	{
+		cout << "The Red Player has won the game by losing all of the Red Mules\n";
+		return true;
+	}
+
+	// White player no mules
+	for (int i = 0; i < numRowsInBoard; i++)
+	{
+		for (int j = 0; j < numRowsInBoard; j++)
+		{
+			if (CMCheckersBoard[i][j] == WHITEMULE)
+				whiteMuleCount++;
+		}
+	}
+	if (whiteMuleCount == 0)
+	{
+		cout << "The White Player has won the game by losing all of the White Mules\n";
+		return true;
+	}
+
+	// Captured all red soldiers and kings
+	for (int i = 0; i < numRowsInBoard; i++)
+	{
+		for (int j = 0; j < numRowsInBoard; j++)
+		{
+			if (CMCheckersBoard[i][j] == REDSOLDIER || CMCheckersBoard[i][j] == REDKING)
+				redSKCount++;
+		}
+	}
+	if (redSKCount == 0)
+	{
+		cout << "The White Player has won the game by capturing all of the red players soldiers and kings\n";
+		return true;
+	}
+
+	// Captured all white soldiers and kings
+	for (int i = 0; i < numRowsInBoard; i++)
+	{
+		for (int j = 0; j < numRowsInBoard; j++)
+		{
+			if (CMCheckersBoard[i][j] == WHITESOLDIER || CMCheckersBoard[i][j] == WHITEKING)
+				whiteSKCount++;
+		}
+	}
+	if (whiteSKCount == 0)
+	{
+		cout << "The Red Player has won the game by capturing all of the white players soldiers and kings\n";
+		return true;
+	}
+	return false;
 }
