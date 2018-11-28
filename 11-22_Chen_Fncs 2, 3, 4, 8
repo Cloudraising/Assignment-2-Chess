@@ -1,1 +1,793 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+using namespace std;
+
+// Global constants
+const int MAX_ARRAY_SIZE = 18;
+const int MIN_ARRAY_SIZE = 8;
+const int MAX_PIECES = 72;
+const int NOPLAYER = 0;
+const int WHITEWINS = 1;
+const int REDWINS = 2;
+const int NOONEWINS = 0;
+const int WHITESOLDIER = 1;
+const int WHITEMULE = 2;
+const int WHITEKING = 3;
+const int REDSOLDIER = 4;
+const int REDMULE = 5;
+const int REDKING = 6;
+const int WHITEPLAYER = 1;
+const int REDPLAYER = 2;
+
+// Function prototypes
+
+void InitializeBoard(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard);
+void DisplayBoard(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard);
+
+int CountJumps(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE],
+	int numRowsInBoard, int player, int xLocArray[], int yLocArray[]);
+bool IsJump(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE],
+	int numRowsInBoard, int player, int xLoc, int yLoc);
+
+bool CheckWin(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard);
+
+int main()
+{
+	int myCMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE] = { 0, 0 };
+	int numRowsInBoard = 0;
+	cout << "Input the number of rows: ";
+	cin >> numRowsInBoard;
+	cout << "\n\n";
+	InitializeBoard(myCMCheckersBoard, numRowsInBoard);
+	DisplayBoard(myCMCheckersBoard, numRowsInBoard);
+
+	// Test 
+	/*myCMCheckersBoard[5][4] = 1;
+	myCMCheckersBoard[5][0] = 2;
+	myCMCheckersBoard[6][1] = 0;*/
+	myCMCheckersBoard[3][2] = 4;
+	int numJumpsAvailable = 0;
+	int player = 0;
+	cout << "\nWhich player: ";
+	cin >> player;
+	cout << "\n";
+	numJumpsAvailable = CountJumps(myCMCheckersBoard, numRowsInBoard, player, 0, 0);
+	cout << numJumpsAvailable;
+	cout << "\n\n";
+	DisplayBoard(myCMCheckersBoard, numRowsInBoard);
+
+
+	return 0;
+}
+
+// Function to set up initial board layout
+// Algorithm works for all even values of numRowsInBoard
+void InitializeBoard(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
+{
+	// Populate mules
+	for (int j = 0; j < numRowsInBoard; j += 2)
+	{
+		CMCheckersBoard[0][j + 1] = 2;
+		CMCheckersBoard[numRowsInBoard - 1][j] = 5;
+	}
+	// Populate white soldiers
+	for (int i = 1; i < numRowsInBoard / 2 - 1; i++)
+	{
+		for (int j = 0; j < numRowsInBoard - 1; j += 2)
+		{
+			// if row element number is odd
+			if (i % 2 == 1)
+			{
+				CMCheckersBoard[i][j] = 1;
+			}
+			else
+			CMCheckersBoard[i][j + 1] = 1;
+		}
+	}
+	// Populate red soldiers starting from second to last row 
+	for (int i = numRowsInBoard - 1 - 1; i > numRowsInBoard / 2; i--)
+	{
+		for (int j = 0; j < numRowsInBoard; j += 2)
+		{
+			// if row element number is odd
+			if (i % 2 == 1)
+			{
+				CMCheckersBoard[i][j] = 4;
+			}
+			else
+				CMCheckersBoard[i][j + 1] = 4;
+		}
+	}
+
+	
+}
+
+
+// Function to display board layout to console using text graphics
+void DisplayBoard(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
+{
+	int elementValueTemp = 0;
+	int count = 0;
+	for (int i = 0; i < numRowsInBoard; i++)
+	{
+		for (int j = 0; j < numRowsInBoard; j ++)
+		{
+			elementValueTemp = CMCheckersBoard[i][j];
+			switch (elementValueTemp)
+			{
+			case 1: cout << setw(4) << "WS";
+				break;
+			case 2: cout << setw(4) << "WM";
+				break;
+			case 3: cout << setw(4) << "WK";
+				break;
+			case 4: cout << setw(4) << "RS";
+				break;
+			case 5: cout << setw(4) << "RM";
+				break;
+			case 6: cout << setw(4) << "RK";
+				break;
+			default: cout << setw(4) << count;
+			}
+			count++;
+		}
+		cout << endl;
+	}
+}
+
+// Function to
+// Returns an integer containing the number of the player's checkers that can jump
+// Call with 1 for player using white and 2 for player using red
+int CountJumps(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLocArray[], int yLocArray[])
+{
+	int counter = 0;
+	// initialize to -1 and first element to location 0
+	
+	for (int i = 0; i < numRowsInBoard; i++)
+	{
+		for (int j = 0; j < numRowsInBoard; j++)
+		{
+			if (IsJump(CMCheckersBoard, numRowsInBoard, player, j, i))
+			{
+				counter++;
+			}
+		}
+
+		// If IsJump is true, the counter recording the number of the player's checkers that can jump is ++
+		// The value of xIndex is placed in the next unused location of xLocArray and
+		// the value of yIndex is placed in the next unused element of array yLocArray.
+
+
+	}
+	return counter;
+}
+
+// Function considers one checker
+// Call with 1 for player using white and 2 for player using red
+bool IsJump(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLoc, int yLoc)
+{
+	if (player == 1)
+	{
+		// If checker is a mule or soldier:
+		// Depending on which column checker is in, perform right and left checks differently
+		if (CMCheckersBoard[yLoc][xLoc] == WHITESOLDIER || CMCheckersBoard[yLoc][xLoc] == WHITEMULE)
+		{
+			if (xLoc == 0)
+			{
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDMULE || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == 1)
+			{
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 1] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == numRowsInBoard - 1)
+			{
+				// Right Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][0] == REDSOLDIER || CMCheckersBoard[yLoc + 1][0] == REDMULE || CMCheckersBoard[yLoc + 1][0] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][1] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == numRowsInBoard - 2)
+			{
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][0] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			// Not in the rightmost 2 columns nor the leftmost 2 columns
+			else
+			{
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+
+				return false;
+			}
+		}
+
+		// If the checker is a king
+		// also test diagnally backwards left and right in addition to diagnally forwards left and right
+		if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
+		{
+			if (xLoc == 0)
+			{
+				// Forward Diagnal checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDMULE || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Backward Diagnal Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == REDMULE || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == 1)
+			{
+				// Forward Diagnal Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 1] == 0)
+					{
+						return true;
+					}
+				}
+				// Backward Diagnal Checks
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 1] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == numRowsInBoard - 1)
+			{
+				// Forward Diagnal Checks
+					// Right Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][0] == REDSOLDIER || CMCheckersBoard[yLoc + 1][0] == REDMULE || CMCheckersBoard[yLoc + 1][0] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][1] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Backward Diagnal Checks
+					// Right Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][0] == REDSOLDIER || CMCheckersBoard[yLoc - 1][0] == REDMULE || CMCheckersBoard[yLoc - 1][0] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][1] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == numRowsInBoard - 2)
+			{
+				// Foward Diagnal Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][0] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Backward Diagnal Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][0] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			// Not in the rightmost 2 columns nor the leftmost 2 columns
+			else
+			{
+				// Forward Diagnal Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Backwards Diagnal Checks
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+		}
+		return false;
+	}
+	if (player == 2)
+	{
+		// If checker is a mule or soldier:
+		// Depending on which column checker is in, perform right and left checks differently
+		if (CMCheckersBoard[yLoc][xLoc] == REDSOLDIER || CMCheckersBoard[yLoc][xLoc] == REDMULE)
+		{
+			if (xLoc == 0)
+			{
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == 1)
+			{
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 1] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == numRowsInBoard - 1)
+			{
+				// Right Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][0] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][0] == WHITEMULE || CMCheckersBoard[yLoc - 1][0] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][1] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == numRowsInBoard - 2)
+			{
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][0] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			// Not in the rightmost 2 columns nor the leftmost 2 columns
+			else 
+			{
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+
+		}
+		else if (CMCheckersBoard[yLoc][xLoc] == REDKING)
+		{
+			if (xLoc == 0)
+			{
+				// Forward Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Backward Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == 1)
+			{
+				// Forward Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 1] == 0)
+					{
+						return true;
+					}
+				}
+				// Backward Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 1] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == numRowsInBoard - 1)
+			{
+				// Forward Checks
+					// Right Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][0] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][0] == WHITEMULE || CMCheckersBoard[yLoc - 1][0] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][1] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Backward Checks
+					// Right Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][0] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][0] == WHITEMULE || CMCheckersBoard[yLoc + 1][0] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][1] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (xLoc == numRowsInBoard - 2)
+			{
+				// Forward Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][0] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Backward Checks
+				// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][0] == 0)
+					{
+						return true;
+					}
+				}
+				// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			// Not in the rightmost 2 columns nor the leftmost 2 columns
+			else
+			{
+				// Forward Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				// Backward Checks
+					// Right Diagnal checks
+				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == 0)
+					{
+						return true;
+					}
+				}
+					// Left Diagnal Checks
+				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
+				{
+					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == 0)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+		}
+		else
+			return false;
+	}
+	return false;
+	
+}
+
+bool CheckWin(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
+{
+
+	return false;
+}
 
