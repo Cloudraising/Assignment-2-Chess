@@ -57,7 +57,7 @@ int main()
 	int yIndicesMove[MAX_PIECES] = { 0 };
 	int xIndicesJump[MAX_PIECES] = { 0 };
 	int yIndicesJump[MAX_PIECES] = { 0 };
-	
+
 	// Integer variables
 	int numRowsInBoard = 0; // Holds the number of rows and columns that user inputs.
 	int player = 1; // Default is white player first
@@ -73,12 +73,17 @@ int main()
 	int canJump = 0; // Variable for squares that can jump
 	int xCanJump = 0; // x coordinate for the square that can jump.
 	int yCanJump = 0; // y coordinate for the square that can jump.
+	int xDiagCheck = 0; // Difference of x value of xMoveFrom and xMoveTo.
+	int yDiagCheck = 0; // Difference of y values of yMoveFrom and yMoveTo.
 
 	// Character variable to end the game.
 	char endGame = '\0';
 
-	// Flags if the user entry is valid. 0 is invalid, 1 is valid.
-	bool validEntry = 0;
+	// Booleans for flags 
+	bool validEntry = false; // Flags if user entry is valid.
+	bool diagCheck = false; // Flags if user wants to move to a diagonal square.
+	bool jumped = false; // Flags if the checker jumped
+	bool moved = false; // Boolean to save the return value of MakeMove function.
 
 	// Prompting and reading the the size of the board from the user. 
 	for (int counter = 1; counter <= 3; counter++)
@@ -92,6 +97,10 @@ int main()
 			cin.ignore();
 			cerr << "ERROR: Board size is not an integer." << endl;
 		}
+		else if (numRowsInBoard % 2 == 1) // User input is odd
+		{
+			cerr << "ERROR: Board size odd." << endl;
+		}
 		else if (numRowsInBoard > MAX_ARRAY_SIZE) // User input is too big
 		{
 			cerr << "ERROR: Board size too large." << endl;
@@ -100,24 +109,20 @@ int main()
 		{
 			cerr << "ERROR: Board size too small." << endl;
 		}
-		else if (numRowsInBoard % 2 == 1) // User input is odd
-		{
-			cerr << "ERROR: Board size odd." << endl;
-		}
 		else // Good condition
 		{
 			break;
-		}	
-		
+		}
+
 		cerr << MIN_ARRAY_SIZE << " <= number of squares <= " << MAX_ARRAY_SIZE << endl;
-		
+
 		if (counter == 3) // If user reaches maximum of three tries, program terminates
 		{
 			cerr << "ERROR: Too many errors entering the size of the board.\n";
-			exit (1);
+			exit(1);
 		}
 	}
-	
+
 	InitializeBoard(myCMCheckersBoard, numRowsInBoard); // Initializing the board.
 	DisplayBoard(myCMCheckersBoard, numRowsInBoard); // Displaying the board.
 
@@ -133,14 +138,17 @@ int main()
 			{
 				cout << "White is unable to move.\n" << "GAME OVER, Red has won.\n" << "Enter any character to close the game.\n";
 				cin >> endGame;
+				exit(2);
 			}
 			else if (player == REDPLAYER)
 			{
 				cout << "Red is unable to move.\n" << "GAME OVER, White has won.\n";
+				cin >> endGame;
+				exit(3);
 			}
 		}
 		// There is at least one possible move, then ask user to input the square to move.
-		else if (movePossible >= 1 || jumpPossible >=1)
+		else if (movePossible >= 1 || jumpPossible >= 1)
 		{
 			if (player == WHITEPLAYER)
 			{
@@ -150,9 +158,9 @@ int main()
 			{
 				cout << "Red takes a turn.\n";
 			}
-			
+
 			// User inputs the square he/she wants to move.
-			while (!validEntry)
+			label: while (!validEntry)
 			{
 				cout << "Enter the square number of the checker you want to move\n";
 				cin >> moveFrom;
@@ -197,7 +205,7 @@ int main()
 				// Checks if the square contains no checker.
 				if (myCMCheckersBoard[yMoveFrom][xMoveFrom] == EMPTY)
 				{
-					cerr << "ERROR: That square is empty." << endl << " Try again" << endl;
+					cerr << "ERROR: That square is empty." << endl << "Try again" << endl;
 					continue;
 				}
 
@@ -216,9 +224,8 @@ int main()
 				{
 					cerr << "ERROR: You can jump with another checker, you may not move your chosen checker." << endl
 						<< "You can jump using checkers on the following squares:";
-					
 					// Find what other squares can jump and output them
-					for (int i=0; i<counter; i++)
+					for (int i = 0; i < counter; i++)
 					{
 						xCanJump = xIndicesJump[i];
 						yCanJump = yIndicesJump[i];
@@ -238,1312 +245,1379 @@ int main()
 				}
 				validEntry = true;
 			}
+
 			validEntry = false; // Used to repeat the same procedure with the destination square.
-			
+
 			// User inputs square number that he/she wants to move to.
-			while (!validEntry)
+		    label2: while (!validEntry)
+		    {
+			    if (!jumped)
+			    {
+				    cout << "Enter the square number of the square you want to move your checker to\n";
+			    }
+			    else
+			    {
+			 	    cout << "You can jump again, Please enter the next square you wish to move your checker to\n";
+			    }
+			    cin >> moveTo;
+
+			    // Check if the input is integer. If not, print error message
+			    if (cin.fail())
+			    {
+				    cin.clear();
+				    cin.ignore();
+				    cerr << "ERROR: You did not enter an integer" << endl << "Try again" << endl;
+				    continue;
+			    }
+			    // Check if the user input is located on the board.
+			    if (moveTo >= (numRowsInBoard*numRowsInBoard) || moveTo < 0)
+			    {
+				    cerr << "ERROR: It is not possible to move to a square that is not on the board." << endl << "Try again" << endl;
+				    continue;
+			    }
+
+			    // To evaluate the square user choses, get x and y coordinate of the square.
+			    xMoveTo = moveTo % numRowsInBoard;
+			    yMoveTo = moveTo / numRowsInBoard;
+
+			    // Check if the square is already occupied.
+			    if (myCMCheckersBoard[yMoveTo][xMoveTo] != EMPTY)
+			    {
+			 	    cerr << "ERROR: It is not possible to move to a square that is already occupied." << endl << "Try again" << endl;
+				    continue;
+			    }
+
+			    // Decide if the user wants to move the square diagonally.
+			    xDiagCheck = abs(xMoveFrom - xMoveTo);
+			    yDiagCheck = abs(yMoveFrom - yMoveTo);
+
+			    if ((xDiagCheck == 1 && yDiagCheck == 1) || (xDiagCheck == (numRowsInBoard - 1) && yDiagCheck == 1))
+			    {
+				    diagCheck = true;
+			    }
+			    else
+			    {
+				    diagCheck = false;
+			    }
+
+			    // Checks if the square can jump when it is requested to move diagonally.
+			    if (CheckList(yIndicesJump, xIndicesJump, xMoveFrom, yMoveFrom) && diagCheck)
+			    {
+				    cerr << "ERROR: You can jump with this checker, you must jump not move 1 space." << endl << "Try again" << endl;
+				    continue;
+			    }
+			    validEntry = true;
+		    }
+
+			// Reset the flag in case the program have to reprocess the error conditions.
+			validEntry = false;
+
+			// Store the return value of hte MakeMove function if the number is moved.
+			moved = MakeMove(myCMCheckersBoard, numRowsInBoard, player, moveFrom, moveTo, jumped);
+			DisplayBoard(myCMCheckersBoard, numRowsInBoard);
+
+			// The checker is not moved.
+			if (moved == false)
 			{
-				cout << "Enter the square number of the square you want to move your checker to\n";
-				cin >> moveTo;
-
-				// Check if the input is integer. If not, print error message
-				if (cin.fail())
+				if (!jumped)
 				{
-					cin.clear();
-					cin.ignore();
-					cerr << "ERROR: You did not enter an integer" << endl << "Try again" << endl;
-					continue;
-				}
-				// Check if the user input is located on the board.
-				if (moveTo >= (numRowsInBoard*numRowsInBoard) || moveTo < 0)
-				{
-					cerr << "ERROR: It is not possible to move to a square that is not on the board." << endl << "Try again" << endl;
-					continue;
+					cerr << "ERROR: Moving to that square is not legal, Try again." << endl;
+					goto label;
 				}
 
-				// To evaluate the square user choses, get x and y coordinate of the square.
-				xMoveTo = moveTo % numRowsInBoard;
-				yMoveTo = moveTo / numRowsInBoard;
-
-				// Check if the square is already occupied.
-				if (myCMCheckersBoard[yMoveTo][xMoveTo] != EMPTY)
+				else
 				{
-					cerr << "ERROR: It is not possible to move to a square that is already occupied." << endl << "Try again" << endl;
-					continue;
+					cerr << "ERROR: Moving to that square is not legal, Try again." << endl;
+					goto label2;
 				}
-				
-				// Checks if the square can jump when it is requested to move diagoally.
-				if (CheckList(yIndicesJump, xIndicesJump, xMoveFrom, yMoveFrom)&&abs(xMoveTo-xMoveFrom)
+			}   
+
+			// The checker is moved and if it is jumped, the program checks if the checker can jump again by calling IsJump.
+			if (jumped)
+			{
+				if (IsJump(myCMCheckersBoard, numRowsInBoard, player, xMoveTo, yMoveTo))
 				{
-					cerr << "ERROR: That square is empty." << endl << " Try again" << endl;
-					continue;
+					xMoveFrom = xMoveTo; // Overwrite because the checker is jumped and it can also jump to a new location.
+					yMoveFrom = yMoveTo;
+
+					goto label2;
 				}
-
-				// There is a checker that can jump other than the chosen square that can only move one square, then
-				// the checker that can jump has to be chosen. First, the xIndicesJump array is examined to determine
-				// whether there are any squares that can jump.
-				for (int i = 0; i < MAX_PIECES; i++)
+				// IsJump is false, which means the checker cannot jump anymore. The move is completed and the game will continue. Player switches.
+				else
 				{
-					if (xIndicesJump[i] != -1)
-						counter++;
-				}
-
-				// If the chosen square is not in the list of squares that can jump, and the counter for jump available
-				// square is bigger or equal to 1, then there is another square that can jump.
-				if (!CheckList(yIndicesJump, xIndicesJump, xMoveFrom, yMoveFrom) && counter >= 1)
-				{
-					cerr << "ERROR: You can jump with another checker, you may not move your chosen checkeer." << endl
-						<< "You can jump using checkers on the following squares:";
-
-					// Find what other squares can jump and output them
-					for (int i = 0; i < counter; i++)
+					if (player == WHITEPLAYER)
 					{
-						xCanJump = xIndicesJump[i];
-						yCanJump = yIndicesJump[i];
-
-						canJump = yCanJump * numRowsInBoard + xCanJump;
-						cerr << " " << canJump << endl;
+						player = REDPLAYER;
+						continue;
 					}
-					cerr << "Try again" << endl;
+					else if (player == REDPLAYER)
+					{
+						player = WHITEPLAYER;
+						continue;
+					}
+				}
+			}
+			// If the checker is moved instead of jump, the player switches.
+			else
+			{
+				if (player == WHITEPLAYER)
+				{
+					player = REDPLAYER;
 					continue;
 				}
-
-				validEntry = true;
+				else if (player == REDPLAYER)
+				{
+					player = WHITEPLAYER;
+					continue;
+				}
 			}
-
 		}
-	}
-	
-
+	}		
+	cout << "Enter any character to terminate the game then press the enter key\n";
+	cin >> endGame;
 
 	return 0;
 }
 
-// Function to set up initial board layout
-// Algorithm works for all even values of numRowsInBoard
-void InitializeBoard(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
-{
-	// Populate mules
-	for (int j = 0; j < numRowsInBoard; j += 2)
+	// Function to set up initial board layout
+	// Algorithm works for all even values of numRowsInBoard
+	void InitializeBoard(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
 	{
-		CMCheckersBoard[0][j + 1] = WHITEMULE; // Populating white mules
-		CMCheckersBoard[numRowsInBoard - 1][j] = REDMULE; // populating red mules
-	}
-	// Populate white soldiers, starting from second row.
-	for (int i = 1; i < numRowsInBoard / 2 - 1; i++)
-	{
-		for (int j = 0; j < numRowsInBoard - 1; j += 2)
-		{
-			// if row element number is odd
-			if (i % 2 == 1)
-			{
-				CMCheckersBoard[i][j] = WHITESOLDIER;
-			}
-			else
-				CMCheckersBoard[i][j + 1] = WHITESOLDIER;
-		}
-	}
-	// Populate red soldiers starting from second to last row 
-	for (int i = numRowsInBoard - 2; i > numRowsInBoard / 2; i--)
-	{
+		// Populate mules
 		for (int j = 0; j < numRowsInBoard; j += 2)
 		{
-			// if row element number is odd
-			if (i % 2 == 1)
-			{
-				CMCheckersBoard[i][j] = REDSOLDIER;
-			}
-			else
-				CMCheckersBoard[i][j + 1] = REDSOLDIER;
+			CMCheckersBoard[0][j + 1] = WHITEMULE; // Populating white mules
+			CMCheckersBoard[numRowsInBoard - 1][j] = REDMULE; // populating red mules
 		}
-	}
-}
-
-// Function to display board layout to console using text graphics
-void DisplayBoard(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
-{
-	int elementValueTemp = 0;
-	int count = 0;
-	for (int i = 0; i < numRowsInBoard; i++)
-	{
-		for (int j = 0; j < numRowsInBoard; j++)
+		// Populate white soldiers, starting from second row.
+		for (int i = 1; i < numRowsInBoard / 2 - 1; i++)
 		{
-			elementValueTemp = CMCheckersBoard[i][j];
-			switch (elementValueTemp)
+			for (int j = 0; j < numRowsInBoard - 1; j += 2)
 			{
-			case 1: cout << setw(4) << "WS";
-				break;
-			case 2: cout << setw(4) << "WM";
-				break;
-			case 3: cout << setw(4) << "WK";
-				break;
-			case 4: cout << setw(4) << "RS";
-				break;
-			case 5: cout << setw(4) << "RM";
-				break;
-			case 6: cout << setw(4) << "RK";
-				break;
-			default: cout << setw(4) << count;
+				// if row element number is odd
+				if (i % 2 == 1)
+				{
+					CMCheckersBoard[i][j] = WHITESOLDIER;
+				}
+				else
+					CMCheckersBoard[i][j + 1] = WHITESOLDIER;
 			}
-			count++;
 		}
-		cout << endl;
-	}
-	cout << endl << endl;
-}
-
-// Function to
-// Returns an integer containing the number of the player's checkers that can jump
-// Call with 1 for player using white and 2 for player using red
-int CountJumps(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLocArray[], int yLocArray[])
-{	
-	int counter = 0; // Counter for the number of the player's checker that can jump an opponent's checker.
-
-	// Initialize to -1
-	for (int index = 0; index < MAX_PIECES; index++)
-	{
-		yLocArray[index] = -1;
-		xLocArray[index] = -1;
-	}
-	
-	// Check each squares and if there is a player's checker, call IsJump function to check 
-	// if it can jump. If IsJump is true, the counter recording the number of the player's 
-	// checkers that can jump is ++. The value of xIndex is placed in the next unused location 
-	// of xLocArray and the value of yIndex is placed in the next unused element of array yLocArray.
-
-	// If it is white player's turn
-	if (player == WHITEPLAYER)
-	{
-		for (int rows = 0; rows < numRowsInBoard; rows++) // Check all rows
+		// Populate red soldiers starting from second to last row 
+		for (int i = numRowsInBoard - 2; i > numRowsInBoard / 2; i--)
 		{
-			for (int columns = 0; columns < numRowsInBoard; columns++) // Check all column
+			for (int j = 0; j < numRowsInBoard; j += 2)
 			{
-				if ((CMCheckersBoard[rows][columns] == WHITESOLDIER) || (CMCheckersBoard[rows][columns] == WHITEMULE) || (CMCheckersBoard[rows][columns] == WHITEKING))
+				// if row element number is odd
+				if (i % 2 == 1)
 				{
-					if (IsJump(CMCheckersBoard, numRowsInBoard, player, columns, rows))
-					{
-						xLocArray[counter] = columns;
-						yLocArray[counter] = rows;
-						counter++;
-					}
+					CMCheckersBoard[i][j] = REDSOLDIER;
 				}
+				else
+					CMCheckersBoard[i][j + 1] = REDSOLDIER;
 			}
 		}
 	}
 
-	// If it is red player's turn
-	if (player == REDPLAYER)
+	// Function to display board layout to console using text graphics
+	void DisplayBoard(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
 	{
-		for (int rows = 0; rows < numRowsInBoard; rows++) // Check all rows
+		int elementValueTemp = 0;
+		int count = 0;
+		for (int i = 0; i < numRowsInBoard; i++)
 		{
-			for (int columns = 0; columns < numRowsInBoard; columns++) // Check all column
+			for (int j = 0; j < numRowsInBoard; j++)
 			{
-				if ((CMCheckersBoard[rows][columns] == REDSOLDIER) || (CMCheckersBoard[rows][columns] == REDMULE) || (CMCheckersBoard[rows][columns] == REDKING))
+				elementValueTemp = CMCheckersBoard[i][j];
+				switch (elementValueTemp)
 				{
-					if (IsJump(CMCheckersBoard, numRowsInBoard, player, columns, rows))
-					{
-						xLocArray[counter] = columns;
-						yLocArray[counter] = rows;
-						counter++;
-					}
+				case 1: cout << setw(4) << "WS";
+					break;
+				case 2: cout << setw(4) << "WM";
+					break;
+				case 3: cout << setw(4) << "WK";
+					break;
+				case 4: cout << setw(4) << "RS";
+					break;
+				case 5: cout << setw(4) << "RM";
+					break;
+				case 6: cout << setw(4) << "RK";
+					break;
+				default: cout << setw(4) << count;
 				}
+				count++;
 			}
+			cout << endl;
 		}
+		cout << endl << endl;
 	}
-	return counter;
-}
 
-// Function checks 
-bool CheckList(int intArray1[], int intArray2[], int xIndex, int yIndex)
-{
-	for (int count = 0; count < MAX_PIECES; count++)
+	// Function to
+	// Returns an integer containing the number of the player's checkers that can jump
+	// Call with 1 for player using white and 2 for player using red
+	int CountJumps(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLocArray[], int yLocArray[])
 	{
-		if (intArray1[count] == yIndex)
+		int counter = 0; // Counter for the number of the player's checker that can jump an opponent's checker.
+
+		// Initialize to -1
+		for (int index = 0; index < MAX_PIECES; index++)
 		{
-			if (intArray2[count] == xIndex)
+			yLocArray[index] = -1;
+			xLocArray[index] = -1;
+		}
+
+		// Check each squares and if there is a player's checker, call IsJump function to check 
+		// if it can jump. If IsJump is true, the counter recording the number of the player's 
+		// checkers that can jump is ++. The value of xIndex is placed in the next unused location 
+		// of xLocArray and the value of yIndex is placed in the next unused element of array yLocArray.
+
+		// If it is white player's turn
+		if (player == WHITEPLAYER)
+		{
+			for (int rows = 0; rows < numRowsInBoard; rows++) // Check all rows
 			{
-				return true;
+				for (int columns = 0; columns < numRowsInBoard; columns++) // Check all column
+				{
+					if ((CMCheckersBoard[rows][columns] == WHITESOLDIER) || (CMCheckersBoard[rows][columns] == WHITEMULE) || (CMCheckersBoard[rows][columns] == WHITEKING))
+					{
+						if (IsJump(CMCheckersBoard, numRowsInBoard, player, columns, rows))
+						{
+							xLocArray[counter] = columns;
+							yLocArray[counter] = rows;
+							counter++;
+						}
+					}
+				}
 			}
 		}
+
+		// If it is red player's turn
+		if (player == REDPLAYER)
+		{
+			for (int rows = 0; rows < numRowsInBoard; rows++) // Check all rows
+			{
+				for (int columns = 0; columns < numRowsInBoard; columns++) // Check all column
+				{
+					if ((CMCheckersBoard[rows][columns] == REDSOLDIER) || (CMCheckersBoard[rows][columns] == REDMULE) || (CMCheckersBoard[rows][columns] == REDKING))
+					{
+						if (IsJump(CMCheckersBoard, numRowsInBoard, player, columns, rows))
+						{
+							xLocArray[counter] = columns;
+							yLocArray[counter] = rows;
+							counter++;
+						}
+					}
+				}
+			}
+		}
+		return counter;
 	}
-	return false;
-}
 
-int CountMove1Squares(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLocArray[], int yLocArray[])
-{
-	int counter = 0; // Counter for the number of the player's checker that can move.
-
-	// Initialize to -1
-	for (int index = 0; index < MAX_PIECES; index++)
+	// Function checks 
+	bool CheckList(int intArray1[], int intArray2[], int xIndex, int yIndex)
 	{
-		yLocArray[index] = -1;
-		xLocArray[index] = -1;
-	}
-
-	// Check each squares and if there is a player's checker, call IsJump function to check 
-	// if it can jump. If IsJump is true, the counter recording the number of the player's 
-	// checkers that can jump is ++. The value of xIndex is placed in the next unused location 
-	// of xLocArray and the value of yIndex is placed in the next unused element of array yLocArray.
-
-
-
-	// If it is white player's turn
-	if (player == WHITEPLAYER)
-	{
-		for (int rows = 0; rows < numRowsInBoard; rows++) // Check all rows
+		for (int count = 0; count < MAX_PIECES; count++)
 		{
-			for (int columns = 0; columns < numRowsInBoard; columns++) // Check all column
+			if (intArray1[count] == yIndex)
 			{
-				if ((CMCheckersBoard[rows][columns] == WHITESOLDIER) || (CMCheckersBoard[rows][columns] == WHITEMULE) || (CMCheckersBoard[rows][columns] == WHITEKING))
+				if (intArray2[count] == xIndex)
 				{
-					if (IsMove1Square(CMCheckersBoard, numRowsInBoard, player, columns, rows))
-					{
-						xLocArray[counter] = columns;
-						yLocArray[counter] = rows;
-						counter++;
-					}
+					return true;
 				}
 			}
 		}
-	}
-
-	// If it is red player's turn
-	if (player == REDPLAYER)
-	{
-		for (int rows = 0; rows < numRowsInBoard; rows++) // Check all rows
-		{
-			for (int columns = 0; columns < numRowsInBoard; columns++) // Check all column
-			{
-				if ((CMCheckersBoard[rows][columns] == REDSOLDIER) || (CMCheckersBoard[rows][columns] == REDMULE) || (CMCheckersBoard[rows][columns] == REDKING))
-				{
-					if (IsMove1Square(CMCheckersBoard, numRowsInBoard, player, columns, rows))
-					{
-						xLocArray[counter] = columns;
-						yLocArray[counter] = rows;
-						counter++;
-					}
-				}
-			}
-		}
-	}
-	return counter;
-}
-
-// Function considers one checker
-// Call with 1 for player using white and 2 for player using red
-bool IsJump(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLoc, int yLoc)
-{
-	if (player == WHITEPLAYER)
-	{
-		// If checker is a mule or soldier:
-		// Depending on which column checker is in, perform right and left checks differently
-		if (CMCheckersBoard[yLoc][xLoc] == WHITESOLDIER || CMCheckersBoard[yLoc][xLoc] == WHITEMULE)
-		{
-			if (xLoc = 0) // At leftmost column
-			{
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDMULE || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == 1) // At second to leftmost column
-			{
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == numRowsInBoard - 1) // At rightmost column
-			{
-				// Right Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][0] == REDSOLDIER || CMCheckersBoard[yLoc + 1][0] == REDMULE || CMCheckersBoard[yLoc + 1][0] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == numRowsInBoard - 2) // At second to rightmost column
-			{
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][0] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			// Not in the rightmost 2 columns nor the leftmost 2 columns
-			else
-			{
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-		}
-
-		// If the checker is a king
-		// also test diagnally backwards left and right in addition to diagnally forwards left and right
-		else if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
-		{
-			if (xLoc = 0)
-			{
-				// Forward Diagnal checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDMULE || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backward Diagnal Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == REDMULE || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == 1)
-			{
-				// Forward Diagnal Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backward Diagnal Checks
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == numRowsInBoard - 1)
-			{
-				// Forward Diagnal Checks
-					// Right Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][0] == REDSOLDIER || CMCheckersBoard[yLoc + 1][0] == REDMULE || CMCheckersBoard[yLoc + 1][0] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backward Diagnal Checks
-					// Right Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][0] == REDSOLDIER || CMCheckersBoard[yLoc - 1][0] == REDMULE || CMCheckersBoard[yLoc - 1][0] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == numRowsInBoard - 2)
-			{
-				// Foward Diagnal Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][0] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backward Diagnal Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][0] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			// Not in the rightmost 2 columns nor the leftmost 2 columns
-			else
-			{
-				// Forward Diagnal Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backwards Diagnal Checks
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-		}
-		else
-			return false;
-	}
-	else if (player == REDPLAYER)
-	{
-		// If checker is a mule or soldier:
-		// Depending on which column checker is in, perform right and left checks differently
-		if (CMCheckersBoard[yLoc][xLoc] == REDSOLDIER || CMCheckersBoard[yLoc][xLoc] == REDMULE)
-		{
-			if (xLoc = 0)
-			{
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == 1)
-			{
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == numRowsInBoard - 1)
-			{
-				// Right Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][0] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][0] == WHITEMULE || CMCheckersBoard[yLoc - 1][0] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == numRowsInBoard - 2)
-			{
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][0] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			// Not in the rightmost 2 columns nor the leftmost 2 columns
-			else
-			{
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-
-		}
-		else if (CMCheckersBoard[yLoc][xLoc] == REDKING)
-		{
-			if (xLoc = 0)
-			{
-				// Forward Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backward Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == 1)
-			{
-				// Forward Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backward Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == numRowsInBoard - 1)
-			{
-				// Forward Checks
-					// Right Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][0] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][0] == WHITEMULE || CMCheckersBoard[yLoc - 1][0] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backward Checks
-					// Right Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][0] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][0] == WHITEMULE || CMCheckersBoard[yLoc + 1][0] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][1] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			else if (xLoc == numRowsInBoard - 2)
-			{
-				// Forward Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][0] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backward Checks
-				// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][0] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-			// Not in the rightmost 2 columns nor the leftmost 2 columns
-			else
-			{
-				// Forward Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Backward Checks
-					// Right Diagnal checks
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				// Left Diagnal Checks
-				if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
-		}
-		else
-			return false;
-	}
-	else
 		return false;
-}
+	}
 
-bool IsMove1Square(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLoc, int yLoc)
-{
-	if (player == WHITEPLAYER)
+	int CountMove1Squares(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLocArray[], int yLocArray[])
 	{
-		// For Soldier, Mule, or King
-		// depending on which column checker is in, perform right and left checks differently
-		if (CMCheckersBoard[yLoc][xLoc] == WHITESOLDIER || CMCheckersBoard[yLoc][xLoc] == WHITEMULE || CMCheckersBoard[yLoc][xLoc] == WHITEKING)
+		int counter = 0; // Counter for the number of the player's checker that can move.
+
+		// Initialize to -1
+		for (int index = 0; index < MAX_PIECES; index++)
 		{
-			if (xLoc = 0) // At leftmost column
+			yLocArray[index] = -1;
+			xLocArray[index] = -1;
+		}
+
+		// Check each squares and if there is a player's checker, call IsJump function to check 
+		// if it can jump. If IsJump is true, the counter recording the number of the player's 
+		// checkers that can jump is ++. The value of xIndex is placed in the next unused location 
+		// of xLocArray and the value of yIndex is placed in the next unused element of array yLocArray.
+
+
+
+		// If it is white player's turn
+		if (player == WHITEPLAYER)
+		{
+			for (int rows = 0; rows < numRowsInBoard; rows++) // Check all rows
 			{
-				// Forward diagonal checks. Right check || Left check
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == EMPTY)
+				for (int columns = 0; columns < numRowsInBoard; columns++) // Check all column
 				{
-					return true;
-				}
-				// Backward diagonal checks if the checker is king. Right check || Left check
-				if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == EMPTY)
+					if ((CMCheckersBoard[rows][columns] == WHITESOLDIER) || (CMCheckersBoard[rows][columns] == WHITEMULE) || (CMCheckersBoard[rows][columns] == WHITEKING))
 					{
-						return true;
+						if (IsMove1Square(CMCheckersBoard, numRowsInBoard, player, columns, rows))
+						{
+							xLocArray[counter] = columns;
+							yLocArray[counter] = rows;
+							counter++;
+						}
 					}
 				}
-				return false;
 			}
-			else if (xLoc == numRowsInBoard - 1) // At rightmost column
+		}
+
+		// If it is red player's turn
+		if (player == REDPLAYER)
+		{
+			for (int rows = 0; rows < numRowsInBoard; rows++) // Check all rows
 			{
-				// Forward diagonal checks. Right check || Left check
-				if (CMCheckersBoard[yLoc + 1][0] == EMPTY || CMCheckersBoard[yLoc + 1][xLoc - 1] == EMPTY)
+				for (int columns = 0; columns < numRowsInBoard; columns++) // Check all column
 				{
-					return true;
-				}
-				// Backwards diagonal checks if the checker is king. Right check || Left check
-				if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 1][0] == EMPTY || CMCheckersBoard[yLoc - 1][xLoc - 1] == EMPTY)
+					if ((CMCheckersBoard[rows][columns] == REDSOLDIER) || (CMCheckersBoard[rows][columns] == REDMULE) || (CMCheckersBoard[rows][columns] == REDKING))
 					{
-						return true;
+						if (IsMove1Square(CMCheckersBoard, numRowsInBoard, player, columns, rows))
+						{
+							xLocArray[counter] = columns;
+							yLocArray[counter] = rows;
+							counter++;
+						}
 					}
 				}
-				return false;
 			}
-			// Not in the rightmost or leftmost column
+		}
+		return counter;
+	}
+
+	// Function considers one checker
+	// Call with 1 for player using white and 2 for player using red
+	bool IsJump(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLoc, int yLoc)
+	{
+		if (player == WHITEPLAYER)
+		{
+			// If checker is a mule or soldier:
+			// Depending on which column checker is in, perform right and left checks differently
+			if (CMCheckersBoard[yLoc][xLoc] == WHITESOLDIER || CMCheckersBoard[yLoc][xLoc] == WHITEMULE)
+			{
+				if (xLoc = 0) // At leftmost column
+				{
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDMULE || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == 1) // At second to leftmost column
+				{
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == numRowsInBoard - 1) // At rightmost column
+				{
+					// Right Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][0] == REDSOLDIER || CMCheckersBoard[yLoc + 1][0] == REDMULE || CMCheckersBoard[yLoc + 1][0] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == numRowsInBoard - 2) // At second to rightmost column
+				{
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][0] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				// Not in the rightmost 2 columns nor the leftmost 2 columns
+				else
+				{
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+			}
+
+			// If the checker is a king
+			// also test diagnally backwards left and right in addition to diagnally forwards left and right
+			else if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
+			{
+				if (xLoc = 0)
+				{
+					// Forward Diagnal checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDMULE || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backward Diagnal Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == REDMULE || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == 1)
+				{
+					// Forward Diagnal Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backward Diagnal Checks
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == numRowsInBoard - 1)
+				{
+					// Forward Diagnal Checks
+						// Right Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][0] == REDSOLDIER || CMCheckersBoard[yLoc + 1][0] == REDMULE || CMCheckersBoard[yLoc + 1][0] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backward Diagnal Checks
+						// Right Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][0] == REDSOLDIER || CMCheckersBoard[yLoc - 1][0] == REDMULE || CMCheckersBoard[yLoc - 1][0] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == numRowsInBoard - 2)
+				{
+					// Foward Diagnal Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][0] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backward Diagnal Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][0] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				// Not in the rightmost 2 columns nor the leftmost 2 columns
+				else
+				{
+					// Forward Diagnal Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backwards Diagnal Checks
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == REDSOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+			}
 			else
-			{
-				// Forward diagonal checks. Right check || Left check
-				if (CMCheckersBoard[yLoc + 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc + 1][xLoc - 1] == EMPTY)
-				{
-					return true;
-				}
-				// Backwards diagonal checks if the checker is king. Right Check || Left Check
-				if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
-				{
-					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc - 1][xLoc - 1] == EMPTY)
-					{
-						return true;
-					}
-				}
 				return false;
+		}
+		else if (player == REDPLAYER)
+		{
+			// If checker is a mule or soldier:
+			// Depending on which column checker is in, perform right and left checks differently
+			if (CMCheckersBoard[yLoc][xLoc] == REDSOLDIER || CMCheckersBoard[yLoc][xLoc] == REDMULE)
+			{
+				if (xLoc = 0)
+				{
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == 1)
+				{
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == numRowsInBoard - 1)
+				{
+					// Right Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][0] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][0] == WHITEMULE || CMCheckersBoard[yLoc - 1][0] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == numRowsInBoard - 2)
+				{
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][0] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				// Not in the rightmost 2 columns nor the leftmost 2 columns
+				else
+				{
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+
 			}
+			else if (CMCheckersBoard[yLoc][xLoc] == REDKING)
+			{
+				if (xLoc = 0)
+				{
+					// Forward Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backward Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == 1)
+				{
+					// Forward Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][numRowsInBoard - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backward Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][numRowsInBoard - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == numRowsInBoard - 1)
+				{
+					// Forward Checks
+						// Right Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][0] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][0] == WHITEMULE || CMCheckersBoard[yLoc - 1][0] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backward Checks
+						// Right Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][0] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][0] == WHITEMULE || CMCheckersBoard[yLoc + 1][0] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == numRowsInBoard - 2)
+				{
+					// Forward Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][0] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backward Checks
+					// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][0] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				// Not in the rightmost 2 columns nor the leftmost 2 columns
+				else
+				{
+					// Forward Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc - 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Backward Checks
+						// Right Diagnal checks
+					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc + 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc + 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					// Left Diagnal Checks
+					if (CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITESOLDIER || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEMULE || CMCheckersBoard[yLoc + 1][xLoc - 1] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 2][xLoc - 2] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+			}
+			else
+				return false;
 		}
 		else
 			return false;
 	}
-	else if (player == REDPLAYER)
+
+	bool IsMove1Square(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player, int xLoc, int yLoc)
 	{
-		// For Soldier, Mule, or King,
-		// depending on which column checker is in, perform right and left checks differently
-		if (CMCheckersBoard[yLoc][xLoc] == REDSOLDIER || CMCheckersBoard[yLoc][xLoc] == REDMULE || CMCheckersBoard[yLoc][xLoc] == REDKING)
+		if (player == WHITEPLAYER)
 		{
-			if (xLoc = 0) // At leftmost column
+			// For Soldier, Mule, or King
+			// depending on which column checker is in, perform right and left checks differently
+			if (CMCheckersBoard[yLoc][xLoc] == WHITESOLDIER || CMCheckersBoard[yLoc][xLoc] == WHITEMULE || CMCheckersBoard[yLoc][xLoc] == WHITEKING)
 			{
-				// Forward diagonal checks. Right check || Left check
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == EMPTY)
+				if (xLoc = 0) // At leftmost column
 				{
-					return true;
-				}
-				// Backward diagonal checks if the checker is king. Right check || Left check
-				if (CMCheckersBoard[yLoc][xLoc] == REDKING)
-				{
+					// Forward diagonal checks. Right check || Left check
 					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == EMPTY)
 					{
 						return true;
 					}
+					// Backward diagonal checks if the checker is king. Right check || Left check
+					if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
 				}
-				return false;
-			}
-			else if (xLoc == numRowsInBoard - 1) // At rightmost column
-			{
-				// Forward diagonal checks. Right check || Left check
-				if (CMCheckersBoard[yLoc - 1][0] == EMPTY || CMCheckersBoard[yLoc - 1][xLoc - 1] == EMPTY)
+				else if (xLoc == numRowsInBoard - 1) // At rightmost column
 				{
-					return true;
-				}
-				// Backwards diagonal checks if the checker is king. Right check || Left check
-				if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
-				{
+					// Forward diagonal checks. Right check || Left check
 					if (CMCheckersBoard[yLoc + 1][0] == EMPTY || CMCheckersBoard[yLoc + 1][xLoc - 1] == EMPTY)
 					{
 						return true;
 					}
+					// Backwards diagonal checks if the checker is king. Right check || Left check
+					if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 1][0] == EMPTY || CMCheckersBoard[yLoc - 1][xLoc - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
 				}
-				return false;
-			}
-			// Not in the rightmost or leftmost column
-			else
-			{
-				// Forward diagonal checks. Right check || Left check
-				if (CMCheckersBoard[yLoc - 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc - 1][xLoc - 1] == EMPTY)
+				// Not in the rightmost or leftmost column
+				else
 				{
-					return true;
-				}
-				// Backwards diagonal checks if the checker is king. Right Check || Left Check
-				if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
-				{
+					// Forward diagonal checks. Right check || Left check
 					if (CMCheckersBoard[yLoc + 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc + 1][xLoc - 1] == EMPTY)
 					{
 						return true;
 					}
+					// Backwards diagonal checks if the checker is king. Right Check || Left Check
+					if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc - 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc - 1][xLoc - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
 				}
-				return false;
 			}
+			else
+				return false;
+		}
+		else if (player == REDPLAYER)
+		{
+			// For Soldier, Mule, or King,
+			// depending on which column checker is in, perform right and left checks differently
+			if (CMCheckersBoard[yLoc][xLoc] == REDSOLDIER || CMCheckersBoard[yLoc][xLoc] == REDMULE || CMCheckersBoard[yLoc][xLoc] == REDKING)
+			{
+				if (xLoc = 0) // At leftmost column
+				{
+					// Forward diagonal checks. Right check || Left check
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc - 1][numRowsInBoard - 1] == EMPTY)
+					{
+						return true;
+					}
+					// Backward diagonal checks if the checker is king. Right check || Left check
+					if (CMCheckersBoard[yLoc][xLoc] == REDKING)
+					{
+						if (CMCheckersBoard[yLoc + 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc + 1][numRowsInBoard - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				else if (xLoc == numRowsInBoard - 1) // At rightmost column
+				{
+					// Forward diagonal checks. Right check || Left check
+					if (CMCheckersBoard[yLoc - 1][0] == EMPTY || CMCheckersBoard[yLoc - 1][xLoc - 1] == EMPTY)
+					{
+						return true;
+					}
+					// Backwards diagonal checks if the checker is king. Right check || Left check
+					if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 1][0] == EMPTY || CMCheckersBoard[yLoc + 1][xLoc - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+				// Not in the rightmost or leftmost column
+				else
+				{
+					// Forward diagonal checks. Right check || Left check
+					if (CMCheckersBoard[yLoc - 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc - 1][xLoc - 1] == EMPTY)
+					{
+						return true;
+					}
+					// Backwards diagonal checks if the checker is king. Right Check || Left Check
+					if (CMCheckersBoard[yLoc][xLoc] == WHITEKING)
+					{
+						if (CMCheckersBoard[yLoc + 1][xLoc + 1] == EMPTY || CMCheckersBoard[yLoc + 1][xLoc - 1] == EMPTY)
+						{
+							return true;
+						}
+					}
+					return false;
+				}
+			}
+			else
+				return false;
 		}
 		else
 			return false;
 	}
-	else
-		return false;
-}
 
-// Moves the checker
-bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player,
-	int fromSquareNum, int toSquareNum, bool &jumped)
-{
-	// Variables
-	int yDistance = 0;
-	int xDistance = 0;
-	int xLocFrom = 0; // x index for the location of the checker before move.
-	int yLocFrom = 0; // y index for the location of the checker before move
-	int xLocTo = 0; // x index for the location of the checker after move.
-	int yLocTo = 0; // y index for the location of the checker after move.
-	int xLocBtw = 0; // x index for the location of the checker between two diagonal move.
-	int yLocBtw = 0; // y index for the location of the checker between two diagonal move.
-	int move = 0; // Holds the value whether the move is 1 square or 2 squares diagonal. 0 is invalid.
-	int betweenNum = 0; // The square between two diagonal move is stored in here.
-	int movedTemp = 0; // Holds the temporary value of the moved checker to compare if a mule is changed to a king.
-	char endGame = '0'; // Character to end the game when a mule king is created.
-
-	// Constants to determine the movement of the squares.
-	const int ONESQUARE = 1;
-	const int TWOSQUARES = 2;
-	const int INVALID = 0;
-
-	// Determine the locaation of the checker in the board.
-	xLocFrom = fromSquareNum % numRowsInBoard;
-	yLocFrom = fromSquareNum / numRowsInBoard;
-	xLocTo = toSquareNum % numRowsInBoard;
-	yLocTo = toSquareNum / numRowsInBoard;
-
-	// Determine the distances of the movement
-	yDistance = abs(yLocTo - yLocFrom);
-	xDistance = abs(xLocTo - xLocFrom);
-
-	// Determine if the movement is moving one or two squares diagonally. 
-	// move = 0 : invalid movement
-	// move = 1 : move 1 square diagonally
-	// move = 2 : move 2 squares diagonally
-	if ((xDistance == 1 && yDistance == 1) || (xDistance == (numRowsInBoard - 1) && yDistance == 1))
+	// Moves the checker
+	bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard, int player,
+		int fromSquareNum, int toSquareNum, bool &jumped)
 	{
-		move = ONESQUARE;
-	}
-	else if ((xDistance == 2 && yDistance == 2) || (xDistance == (numRowsInBoard - 2) && yDistance == 2))
-	{
-		move = TWOSQUARES;
-	}
-	else
-		move = INVALID;
+		// Variables
+		int yDistance = 0;
+		int xDistance = 0;
+		int xLocFrom = 0; // x index for the location of the checker before move.
+		int yLocFrom = 0; // y index for the location of the checker before move
+		int xLocTo = 0; // x index for the location of the checker after move.
+		int yLocTo = 0; // y index for the location of the checker after move.
+		int xLocBtw = 0; // x index for the location of the checker between two diagonal move.
+		int yLocBtw = 0; // y index for the location of the checker between two diagonal move.
+		int move = 0; // Holds the value whether the move is 1 square or 2 squares diagonal. 0 is invalid.
+		int betweenNum = 0; // The square between two diagonal move is stored in here.
+		int movedTemp = 0; // Holds the temporary value of the moved checker to compare if a mule is changed to a king.
+		char endGame = '0'; // Character to end the game when a mule king is created.
 
-	// User wants to move more than two squares diagonally.
-	if (move == INVALID)
-	{
-		cerr << "ERROR: Illegal move." << endl;
-		return false;
-	}
-	// If the distance is jumping a checker, including when the checker is moving from one side to the other,
-	// check if there is an opponent checker in between.
-	else if (move == TWOSQUARES)
-	{
-		// When the square user wants to move from is located at the rightmost side or second to left, and the square that is moved to is on the other side,
-		// the following equation determines the square number of the square between the diagonal move: 
-		// square that needs to be checked = (fromSquareNum + toSquareNum)/2 - numRowsInBoard/2
-		if ((xLocFrom == 1 || xLocFrom == (numRowsInBoard - 1)) && xDistance == (numRowsInBoard - 2))
+		// Constants to determine the movement of the squares.
+		const int ONESQUARE = 1;
+		const int TWOSQUARES = 2;
+		const int INVALID = 0;
+
+		// Determine the locaation of the checker in the board.
+		xLocFrom = fromSquareNum % numRowsInBoard;
+		yLocFrom = fromSquareNum / numRowsInBoard;
+		xLocTo = toSquareNum % numRowsInBoard;
+		yLocTo = toSquareNum / numRowsInBoard;
+
+		// Determine the distances of the movement
+		yDistance = abs(yLocTo - yLocFrom);
+		xDistance = abs(xLocTo - xLocFrom);
+
+		// Determine if the movement is moving one or two squares diagonally. 
+		// move = 0 : invalid movement
+		// move = 1 : move 1 square diagonally
+		// move = 2 : move 2 squares diagonally
+		if ((xDistance == 1 && yDistance == 1) || (xDistance == (numRowsInBoard - 1) && yDistance == 1))
 		{
-			betweenNum = (fromSquareNum + toSquareNum) / 2 - numRowsInBoard / 2;
-			xLocBtw = betweenNum % numRowsInBoard;
-			yLocBtw = betweenNum / numRowsInBoard;
+			move = ONESQUARE;
 		}
-		// When the square user wants to move from is located at the second to right or leftmost, and the square that is moved to is on the other side,
-		// the following equation determines the square number of the square between the diagonal move:
-		// square that needs to be checked = (fromSquareNum + toSquareNum)/2 + numRowsInBoard/2
-		else if ((xLocFrom == 0 || xLocFrom == (numRowsInBoard - 2)) && xDistance == (numRowsInBoard - 2))
+		else if ((xDistance == 2 && yDistance == 2) || (xDistance == (numRowsInBoard - 2) && yDistance == 2))
 		{
-			betweenNum = (fromSquareNum + toSquareNum) / 2 + numRowsInBoard / 2;
-			xLocBtw = betweenNum % numRowsInBoard;
-			yLocBtw = betweenNum / numRowsInBoard;
+			move = TWOSQUARES;
 		}
-		// When the square is not moving from one side to another,
-		else if (xLocFrom > 1 && xLocFrom < (numRowsInBoard - 2))
-		{
-			betweenNum = (fromSquareNum + toSquareNum) / 2;
-			xLocBtw = betweenNum % numRowsInBoard;
-			yLocBtw = betweenNum / numRowsInBoard;
-		}
+		else
+			move = INVALID;
 
-		// Check the checker located between the two diagonal move
-		if (!(CMCheckersBoard[yLocBtw][xLocBtw] == REDSOLDIER || CMCheckersBoard[yLocBtw][xLocBtw] == REDMULE || CMCheckersBoard[yLocBtw][xLocBtw] == REDKING))
+		// User wants to move more than two squares diagonally.
+		if (move == INVALID)
 		{
 			cerr << "ERROR: Illegal move." << endl;
 			return false;
 		}
-	}
-
-	// Check if a white soldier or a white mule is moving in the wrong direction. yLocTo is smaller than yLocFrom.
-	else if (CMCheckersBoard[yLocFrom][xLocFrom] == WHITESOLDIER || CMCheckersBoard[yLocFrom][xLocFrom] == WHITEMULE)
-	{
-		if (yLocTo < yLocFrom)
+		// If the distance is jumping a checker, including when the checker is moving from one side to the other,
+		// check if there is an opponent checker in between.
+		else if (move == TWOSQUARES)
 		{
-			cerr << " ERROR: Illegal move" << endl;
-			return false;
-		}
-	}
-	// Check if a red soldier or a red mule is moving in the wrong direction. yLocTo is bigger than yLocFrom.
-	else if (CMCheckersBoard[yLocFrom][xLocFrom] == REDSOLDIER || CMCheckersBoard[yLocFrom][xLocFrom] == REDMULE)
-	{
-		if (yLocTo > yLocFrom)
-		{
-			cerr << " ERROR: Illegal move" << endl;
-			return false;
-		}
-	}
-
-	// Making the move. Checking the jump first, then move.
-	// For jump, move the checker to the location and destroy the value between the jump.
-	// Then empties the value in original square.
-	if (move == TWOSQUARES)
-	{
-		CMCheckersBoard[yLocTo][xLocTo] = CMCheckersBoard[yLocFrom][xLocFrom];
-		CMCheckersBoard[yLocBtw][xLocBtw] = EMPTY;
-		CMCheckersBoard[yLocFrom][xLocFrom] = EMPTY;
-		jumped = true;
-		
-		// Check if the jumped checker has reached the end of the board and if so, check if it was a mule. 
-		// If it was a mule, print error message and exit the program. Otherwise, return true.
-		if (player == WHITEPLAYER)
-		{
-			if (yLocTo == numRowsInBoard - 1)
+			// When the square user wants to move from is located at the rightmost side or second to left, and the square that is moved to is on the other side,
+			// the following equation determines the square number of the square between the diagonal move: 
+			// square that needs to be checked = (fromSquareNum + toSquareNum)/2 - numRowsInBoard/2
+			if ((xLocFrom == 1 || xLocFrom == (numRowsInBoard - 1)) && xDistance == (numRowsInBoard - 2))
 			{
-				movedTemp = CMCheckersBoard[yLocTo][xLocTo];
-				CMCheckersBoard[yLocTo][xLocTo] = WHITEKING;
-				if (movedTemp == WHITEMULE)
+				betweenNum = (fromSquareNum + toSquareNum) / 2 - numRowsInBoard / 2;
+				xLocBtw = betweenNum % numRowsInBoard;
+				yLocBtw = betweenNum / numRowsInBoard;
+			}
+			// When the square user wants to move from is located at the second to right or leftmost, and the square that is moved to is on the other side,
+			// the following equation determines the square number of the square between the diagonal move:
+			// square that needs to be checked = (fromSquareNum + toSquareNum)/2 + numRowsInBoard/2
+			else if ((xLocFrom == 0 || xLocFrom == (numRowsInBoard - 2)) && xDistance == (numRowsInBoard - 2))
+			{
+				betweenNum = (fromSquareNum + toSquareNum) / 2 + numRowsInBoard / 2;
+				xLocBtw = betweenNum % numRowsInBoard;
+				yLocBtw = betweenNum / numRowsInBoard;
+			}
+			// When the square is not moving from one side to another,
+			else if (xLocFrom > 1 && xLocFrom < (numRowsInBoard - 2))
+			{
+				betweenNum = (fromSquareNum + toSquareNum) / 2;
+				xLocBtw = betweenNum % numRowsInBoard;
+				yLocBtw = betweenNum / numRowsInBoard;
+			}
+
+			if (player == WHITEPLAYER)
+			{		
+				// Check the checker located between the two diagonal move
+				if (!(CMCheckersBoard[yLocBtw][xLocBtw] == REDSOLDIER || CMCheckersBoard[yLocBtw][xLocBtw] == REDMULE || CMCheckersBoard[yLocBtw][xLocBtw] == REDKING))
 				{
-					cerr << "White has created a Mule King, Red wins the game\n";
-					cout << "Enter any character to terminate the game then press the enter key\n";
-					cin >> endGame;
-					exit(2);
+					cerr << "ERROR: Illegal move." << endl;
+					return false;
+				}
+			}
+
+			if (player == REDPLAYER)
+			{
+				// Check the checker located between the two diagonal move
+				if (!(CMCheckersBoard[yLocBtw][xLocBtw] == WHITESOLDIER || CMCheckersBoard[yLocBtw][xLocBtw] == WHITEMULE || CMCheckersBoard[yLocBtw][xLocBtw] == WHITEKING))
+				{
+					cerr << "ERROR: Illegal move." << endl;
+					return false;
 				}
 			}
 		}
-		else if (player == REDPLAYER)
+
+		// Check if a white soldier or a white mule is moving in the wrong direction. yLocTo is smaller than yLocFrom.
+		else if (CMCheckersBoard[yLocFrom][xLocFrom] == WHITESOLDIER || CMCheckersBoard[yLocFrom][xLocFrom] == WHITEMULE)
 		{
-			if (yLocTo == 0)
+			if (yLocTo < yLocFrom)
 			{
-				movedTemp = CMCheckersBoard[yLocTo][xLocTo];
-				CMCheckersBoard[yLocTo][xLocTo] = REDKING;
-				if (movedTemp == REDMULE)
-				{
-					cerr << "Red has created a Mule King, White wins the game\n";
-					cout << "Enter any character to terminate the game then press the enter key\n";
-					cin >> endGame;
-					exit(3);
-				}
+				cerr << " ERROR: Illegal move" << endl;
+				return false;
 			}
 		}
-		return true;
-	}
-	// For move, change the checker location and empty the value in the original square.
-	// Then check if the mule checker has reached the end of the board. If so, print error message and exit the program.
-	// Otherwise, return true.
-	else if (move == ONESQUARE)
-	{
-		CMCheckersBoard[yLocTo][xLocTo] = CMCheckersBoard[yLocFrom][xLocFrom];
-		CMCheckersBoard[yLocFrom][xLocFrom] = EMPTY;
-
-		if (player == WHITEPLAYER)
+		// Check if a red soldier or a red mule is moving in the wrong direction. yLocTo is bigger than yLocFrom.
+		else if (CMCheckersBoard[yLocFrom][xLocFrom] == REDSOLDIER || CMCheckersBoard[yLocFrom][xLocFrom] == REDMULE)
 		{
-			if (yLocTo == numRowsInBoard - 1)
+			if (yLocTo > yLocFrom)
 			{
-				movedTemp = CMCheckersBoard[yLocTo][xLocTo];
-				CMCheckersBoard[yLocTo][xLocTo] = WHITEKING;
-				if (movedTemp == WHITEMULE)
-				{
-					cerr << "White has created a Mule King, Red wins the game\n";
-					cout << "Enter any character to terminate the game then press the enter key\n";
-					cin >> endGame;
-					exit(4);
-				}
+				cerr << " ERROR: Illegal move" << endl;
+				return false;
 			}
 		}
-		else if (player == REDPLAYER)
+
+		// Making the move. Checking the jump first, then move.
+		// For jump, move the checker to the location and destroy the value between the jump.
+		// Then empties the value in original square.
+		if (move == TWOSQUARES)
 		{
-			if (yLocTo == 0)
+			CMCheckersBoard[yLocTo][xLocTo] = CMCheckersBoard[yLocFrom][xLocFrom];
+			CMCheckersBoard[yLocBtw][xLocBtw] = EMPTY;
+			CMCheckersBoard[yLocFrom][xLocFrom] = EMPTY;
+			jumped = true;
+
+			// Check if the jumped checker has reached the end of the board and if so, check if it was a mule. 
+			// If it was a mule, print error message and exit the program. Otherwise, return true.
+			if (player == WHITEPLAYER)
 			{
-				movedTemp = CMCheckersBoard[yLocTo][xLocTo];
-				CMCheckersBoard[yLocTo][xLocTo] = REDKING;
-				if (movedTemp == REDMULE)
+				if (yLocTo == numRowsInBoard - 1)
 				{
-					cerr << "Red has created a Mule King, White wins the game\n";
-					cout << "Enter any character to terminate the game then press the enter key\n";
-					cin >> endGame;
-					exit(5);
+					movedTemp = CMCheckersBoard[yLocTo][xLocTo];
+					CMCheckersBoard[yLocTo][xLocTo] = WHITEKING;
+					if (movedTemp == WHITEMULE)
+					{
+						cerr << "White has created a Mule King, Red wins the game\n";
+						cout << "Enter any character to terminate the game then press the enter key\n";
+						cin >> endGame;
+						exit(2);
+					}
 				}
 			}
+			else if (player == REDPLAYER)
+			{
+				if (yLocTo == 0)
+				{
+					movedTemp = CMCheckersBoard[yLocTo][xLocTo];
+					CMCheckersBoard[yLocTo][xLocTo] = REDKING;
+					if (movedTemp == REDMULE)
+					{
+						cerr << "Red has created a Mule King, White wins the game\n";
+						cout << "Enter any character to terminate the game then press the enter key\n";
+						cin >> endGame;
+						exit(3);
+					}
+				}
+			}
+			return true;
 		}
-		return true;
-	}
-}
-
-bool CheckWin(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
-{
-	// Counter variables for mules and soldiers/kings for each color.
-	int redMuleCount = 0;
-	int whiteMuleCount = 0;
-	int redSKCount = 0;
-	int whiteSKCount = 0;
-
-	// Red player no mules
-	for (int i = 0; i < numRowsInBoard; i++)
-	{
-		for (int j = 0; j < numRowsInBoard; j++)
+		// For move, change the checker location and empty the value in the original square.
+		// Then check if the mule checker has reached the end of the board. If so, print error message and exit the program.
+		// Otherwise, return true.
+		else if (move == ONESQUARE)
 		{
-			if (CMCheckersBoard[i][j] == REDMULE)
-				redMuleCount++;
+			CMCheckersBoard[yLocTo][xLocTo] = CMCheckersBoard[yLocFrom][xLocFrom];
+			CMCheckersBoard[yLocFrom][xLocFrom] = EMPTY;
+			jumped = false;
+
+			if (player == WHITEPLAYER)
+			{
+				if (yLocTo == numRowsInBoard - 1)
+				{
+					movedTemp = CMCheckersBoard[yLocTo][xLocTo];
+					CMCheckersBoard[yLocTo][xLocTo] = WHITEKING;
+					if (movedTemp == WHITEMULE)
+					{
+						cerr << "White has created a Mule King, Red wins the game\n";
+						cout << "Enter any character to terminate the game then press the enter key\n";
+						cin >> endGame;
+						exit(4);
+					}
+				}
+			}
+			else if (player == REDPLAYER)
+			{
+				if (yLocTo == 0)
+				{
+					movedTemp = CMCheckersBoard[yLocTo][xLocTo];
+					CMCheckersBoard[yLocTo][xLocTo] = REDKING;
+					if (movedTemp == REDMULE)
+					{
+						cerr << "Red has created a Mule King, White wins the game\n";
+						cout << "Enter any character to terminate the game then press the enter key\n";
+						cin >> endGame;
+						exit(5);
+					}
+				}
+			}
+			return true;
 		}
-	}
-	if (redMuleCount == 0)
-	{
-		cout << "The Red Player has won the game by losing all of the Red Mules\n";
-		return true;
 	}
 
-	// White player no mules
-	for (int i = 0; i < numRowsInBoard; i++)
+	bool CheckWin(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsInBoard)
 	{
-		for (int j = 0; j < numRowsInBoard; j++)
-		{
-			if (CMCheckersBoard[i][j] == WHITEMULE)
-				whiteMuleCount++;
-		}
-	}
-	if (whiteMuleCount == 0)
-	{
-		cout << "The White Player has won the game by losing all of the White Mules\n";
-		return true;
-	}
+		// Counter variables for mules and soldiers/kings for each color.
+		int redMuleCount = 0;
+		int whiteMuleCount = 0;
+		int redSKCount = 0;
+		int whiteSKCount = 0;
 
-	// Captured all red soldiers and kings
-	for (int i = 0; i < numRowsInBoard; i++)
-	{
-		for (int j = 0; j < numRowsInBoard; j++)
+		// Red player no mules
+		for (int i = 0; i < numRowsInBoard; i++)
 		{
-			if (CMCheckersBoard[i][j] == REDSOLDIER || CMCheckersBoard[i][j] == REDKING)
-				redSKCount++;
+			for (int j = 0; j < numRowsInBoard; j++)
+			{
+				if (CMCheckersBoard[i][j] == REDMULE)
+					redMuleCount++;
+			}
 		}
-	}
-	if (redSKCount == 0)
-	{
-		cout << "The White Player has won the game by capturing all of the red players soldiers and kings\n";
-		return true;
-	}
+		if (redMuleCount == 0)
+		{
+			cout << "The Red Player has won the game by losing all of the Red Mules\n";
+			return true;
+		}
 
-	// Captured all white soldiers and kings
-	for (int i = 0; i < numRowsInBoard; i++)
-	{
-		for (int j = 0; j < numRowsInBoard; j++)
+		// White player no mules
+		for (int i = 0; i < numRowsInBoard; i++)
 		{
-			if (CMCheckersBoard[i][j] == WHITESOLDIER || CMCheckersBoard[i][j] == WHITEKING)
-				whiteSKCount++;
+			for (int j = 0; j < numRowsInBoard; j++)
+			{
+				if (CMCheckersBoard[i][j] == WHITEMULE)
+					whiteMuleCount++;
+			}
 		}
+		if (whiteMuleCount == 0)
+		{
+			cout << "The White Player has won the game by losing all of the White Mules\n";
+			return true;
+		}
+
+		// Captured all red soldiers and kings
+		for (int i = 0; i < numRowsInBoard; i++)
+		{
+			for (int j = 0; j < numRowsInBoard; j++)
+			{
+				if (CMCheckersBoard[i][j] == REDSOLDIER || CMCheckersBoard[i][j] == REDKING)
+					redSKCount++;
+			}
+		}
+		if (redSKCount == 0)
+		{
+			cout << "The White Player has won the game by capturing all of the red players soldiers and kings\n";
+			return true;
+		}
+
+		// Captured all white soldiers and kings
+		for (int i = 0; i < numRowsInBoard; i++)
+		{
+			for (int j = 0; j < numRowsInBoard; j++)
+			{
+				if (CMCheckersBoard[i][j] == WHITESOLDIER || CMCheckersBoard[i][j] == WHITEKING)
+					whiteSKCount++;
+			}
+		}
+		if (whiteSKCount == 0)
+		{
+			cout << "The Red Player has won the game by capturing all of the white players soldiers and kings\n";
+			return true;
+		}
+		return false;
 	}
-	if (whiteSKCount == 0)
-	{
-		cout << "The Red Player has won the game by capturing all of the white players soldiers and kings\n";
-		return true;
-	}
-	return false;
-}
