@@ -261,7 +261,7 @@ int main()
 				//If the chosen checker cannot jump or move, then print the error message
 				if (!CheckList(yIndicesJump, xIndicesJump, xMoveFrom, yMoveFrom) && !CheckList(yIndicesMove, xIndicesMove, xMoveFrom, yMoveFrom))
 				{
-					cerr << "ERROR: There is no legal move for this checker" << endl << "Try again" << endl;
+					cerr << "ERROR: There is no legal move for this checker." << endl << "Try again" << endl;
 					continue;
 				}
 				validEntry = true;
@@ -287,7 +287,7 @@ int main()
 			{
 				cin.clear();
 				cin.ignore();
-				cerr << "ERROR: You did not enter an integer" << endl << "Try again" << endl;
+				cerr << "ERROR: You did not enter an integer." << endl << "Try again" << endl;
 				continue;
 			}
 			// Check if the user input is located on the board.
@@ -1418,7 +1418,7 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 	{
 		if (yLocTo < yLocFrom)
 		{
-			cerr << "ERROR: Illegal move" << endl;
+			cerr << "ERROR: Illegal move." << endl;
 			return false;
 		}
 	}
@@ -1427,7 +1427,7 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 	{
 		if (yLocTo > yLocFrom)
 		{
-			cerr << "ERROR: Illegal move" << endl;
+			cerr << "ERROR: Illegal move." << endl;
 			return false;
 		}
 	}
@@ -1452,7 +1452,7 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 				CMCheckersBoard[yLocTo][xLocTo] = WHITEKING;
 				if (movedTemp == WHITEMULE)
 				{
-					cerr << "White has created a Mule King, Red wins the game\n";
+					cout << "White has created a Mule King, Red wins the game\n";
 					cout << "Enter any character to terminate the game then press the enter key\n";
 					cin >> endGame;
 					exit(4);
@@ -1467,7 +1467,7 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 				CMCheckersBoard[yLocTo][xLocTo] = REDKING;
 				if (movedTemp == REDMULE)
 				{
-					cerr << "Red has created a Mule King, White wins the game\n";
+					cout << "Red has created a Mule King, White wins the game\n";
 					cout << "Enter any character to terminate the game then press the enter key\n";
 					cin >> endGame;
 					exit(5);
@@ -1493,7 +1493,7 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 				CMCheckersBoard[yLocTo][xLocTo] = WHITEKING;
 				if (movedTemp == WHITEMULE)
 				{
-					cerr << "White has created a Mule King, Red wins the game\n";
+					cout << "White has created a Mule King, Red wins the game\n";
 					cout << "Enter any character to terminate the game then press the enter key\n";
 					cin >> endGame;
 					exit(4);
@@ -1508,7 +1508,7 @@ bool MakeMove(int CMCheckersBoard[MAX_ARRAY_SIZE][MAX_ARRAY_SIZE], int numRowsIn
 				CMCheckersBoard[yLocTo][xLocTo] = REDKING;
 				if (movedTemp == REDMULE)
 				{
-					cerr << "Red has created a Mule King, White wins the game\n";
+					cout << "Red has created a Mule King, White wins the game\n";
 					cout << "Enter any character to terminate the game then press the enter key\n";
 					cin >> endGame;
 					exit(5);
